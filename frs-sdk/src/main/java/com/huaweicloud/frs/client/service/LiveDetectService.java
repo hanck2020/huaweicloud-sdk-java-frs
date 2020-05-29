@@ -4,10 +4,12 @@ package com.huaweicloud.frs.client.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.huaweicloud.frs.access.FrsAccess;
 import com.huaweicloud.frs.client.result.LiveDetectResult;
+import com.huaweicloud.frs.client.result.LiveDetectSilentResult;
 import com.huaweicloud.frs.common.FrsConstant;
 import com.huaweicloud.frs.common.FrsException;
 import com.huaweicloud.frs.common.ImageType;
 import com.huaweicloud.frs.utils.HttpResponseUtils;
+
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
 import okhttp3.RequestBody;
@@ -95,8 +97,12 @@ public class LiveDetectService {
      * @throws IOException  IO exception
      */
     public LiveDetectResult liveDetectByFile(String videoPath, String actions, String actionTime) throws FrsException, IOException {
-        String uri = String.format(FrsConstant.V1.getLiveDetectUri(), this.projectId);
         File video = new File(videoPath);
+        return liveDetectByFile(video, actions, actionTime);
+    }
+    
+    public LiveDetectResult liveDetectByFile(File video, String actions, String actionTime) throws FrsException, IOException {
+        String uri = String.format(FrsConstant.V1.getLiveDetectUri(), this.projectId);
         RequestBody videoBody = RequestBody.create(MediaType.parse("application/octet-stream"), video);
         MultipartBody.Builder builder = new MultipartBody.Builder();
         builder.setType(MultipartBody.FORM)
@@ -148,5 +154,62 @@ public class LiveDetectService {
      */
     public LiveDetectResult liveDetectByObsUrl(String videoUrl, String actions) throws FrsException, IOException {
         return liveDetectByObsUrl(videoUrl, actions, null);
+    }
+    
+    public LiveDetectSilentResult liveDetectSilentByFile(String filePath) throws FrsException, IOException {
+    	File imageFile = new File(filePath);
+        return liveDetectSilentByFile(imageFile);
+    }
+    
+    /**
+     * Silent living detect
+     * @author  hanck@szkingdom.com
+     * @date 2020-5-28
+     * @param photoPath
+     * @return Result of silent live detect
+     * @throws FrsException
+     * @throws IOException
+     */
+    public LiveDetectSilentResult liveDetectSilentByFile(File photo) throws FrsException, IOException {
+        String uri = String.format(FrsConstant.V1.getLiveDetectSilentUri(), this.projectId);
+        RequestBody photoBody = RequestBody.create(MediaType.parse("application/octet-stream"), photo);
+        MultipartBody.Builder builder = new MultipartBody.Builder();
+        builder.setType(MultipartBody.FORM)
+                .addFormDataPart("image_file", photo.getName(), photoBody);  
+        RequestBody requestBody = builder.build();
+        Response httpResponse = this.service.post(uri, requestBody, this.projectId);
+        return HttpResponseUtils.httpResponse2Result(httpResponse, LiveDetectSilentResult.class);
+    }
+    
+    public LiveDetectSilentResult liveDetectSilentByBase64(String photo) throws FrsException, IOException {
+        return liveDetectSilent(photo, ImageType.BASE64);
+    }
+    
+    public LiveDetectSilentResult liveDetectSilentByObsUrl(String photo) throws FrsException, IOException {
+        return liveDetectSilent(photo, null);
+    }
+    
+    /**
+     * Silent living detect
+     * @author  hanck@szkingdom.com
+     * @date 2020-5-28
+     * @param photo  image_base64 or obs URI
+     * @param videoType if image_base64 parameter value is ImageType.BASE64 else null.
+     * @return
+     * @throws FrsException
+     * @throws IOException
+     */
+    private LiveDetectSilentResult liveDetectSilent(String photo, ImageType videoType) throws FrsException, IOException {
+        String uri = String.format(FrsConstant.V1.getLiveDetectSilentUri(), this.projectId);
+        ObjectMapper mapper = new ObjectMapper();
+        Map<String, Object> json = new HashMap<>();
+        if (ImageType.BASE64 == videoType) {
+            json.put("image_base64", photo);
+        } else {
+            json.put("image_url", photo);//obs URI
+        }
+        RequestBody requestBody = RequestBody.create(JSON, mapper.writeValueAsString(json));
+        Response httpResponse = this.service.post(uri, requestBody, this.projectId);
+        return HttpResponseUtils.httpResponse2Result(httpResponse, LiveDetectSilentResult.class);
     }
 }

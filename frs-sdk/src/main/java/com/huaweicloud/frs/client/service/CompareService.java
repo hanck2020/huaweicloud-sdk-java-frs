@@ -94,6 +94,28 @@ public class CompareService {
     /**
      * Compare face by file path
      *
+     * @param filePath1 File path of image1
+     * @param filePath2 File path of image2
+     * @return Face compare result
+     * @throws FrsException Throws while http status code is not 200
+     * @throws IOException  IO exception
+     */
+    public CompareFaceResult compareFaceByFile(File image1, File image2) throws FrsException, IOException {
+        String uri = String.format(FrsConstant.V1.getFaceCompareUri(), this.projectId);
+        RequestBody image1Body = RequestBody.create(MediaType.parse("application/octet-stream"), image1);
+        RequestBody image2Body = RequestBody.create(MediaType.parse("application/octet-stream"), image2);
+        RequestBody requestBody = new MultipartBody.Builder()
+                .setType(MultipartBody.FORM)
+                .addFormDataPart("image1_file", image1.getName(), image1Body)
+                .addFormDataPart("image2_file", image2.getName(), image2Body)
+                .build();
+        Response httpResponse = this.service.post(uri, requestBody, this.projectId);
+        return HttpResponseUtils.httpResponse2Result(httpResponse, CompareFaceResult.class);
+    }
+    
+    /**
+     * Compare face by file path
+     *
      * @param obsUrl1 Obs url of image1
      * @param obsUrl2 Obs url of image2
      * @return Face compare result
